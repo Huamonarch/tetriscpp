@@ -62,7 +62,7 @@ void initTetrominos() {
 	tetrominoes[3].append(L".x..");
 	tetrominoes[3].append(L".xx.");
 	tetrominoes[3].append(L"..x.");
-	tetrominoes[3].append(L"..-.");
+	tetrominoes[3].append(L"....");
 
 	tetrominoes[4].append(L"..x.");
 	tetrominoes[4].append(L".xx.");
@@ -136,11 +136,44 @@ int main()
 	int nCurrentRotation = 0;
 	int nCurrentX = fieldWidth / 2;
 	int nCurrentY = 0;
+	int rotateHold = false;
 	bool bKey[4];
+	int speed = 20;
+	int gameTicks = 0;
+	bool forceDown = false;
 
 	while(!gameOver){
 		// Time
 		this_thread::sleep_for(50ms);
+		gameTicks++;
+		forceDown = (speed == gameTicks);
+
+		if (forceDown) {
+			gameTicks = 0;
+			if (checkCollision(nCurrentPiece, nCurrentRotation, nCurrentX, nCurrentY + 1)) {
+				nCurrentY++;
+			}
+			else {
+				// Lock the tetromino
+				for (int px = 0; px < 4; px++)
+					for (int py = 0; py < 4; py++)
+						if (tetrominoes[nCurrentPiece][rotate(px, py, nCurrentRotation)] != L'.')
+							pointerField[(nCurrentY + py) * fieldWidth+ (nCurrentX + px)] = nCurrentPiece + 1;
+
+				// Check for a full line
+
+				// Choose a new piece
+				nCurrentRotation = 0;
+				nCurrentX = fieldWidth / 2;
+				nCurrentY = 0;
+				nCurrentPiece = rand() % 7;
+
+
+				// Game over
+				gameOver = !checkCollision(nCurrentPiece, nCurrentRotation, nCurrentX, nCurrentY);
+			}
+		}
+
 
 		// Input
 		for (int k = 0; k < 4; k++)								// R   L   DZ
@@ -149,6 +182,14 @@ int main()
 		nCurrentX += (bKey[0] && checkCollision(nCurrentPiece, nCurrentRotation, nCurrentX + 1, nCurrentY)) ? 1 : 0;
 		nCurrentX -= (bKey[1] && checkCollision(nCurrentPiece, nCurrentRotation, nCurrentX - 1, nCurrentY)) ? 1 : 0;
 		nCurrentY += (bKey[2] && checkCollision(nCurrentPiece, nCurrentRotation, nCurrentX, nCurrentY + 1)) ? 1 : 0;
+		
+		if (bKey[3])
+		{
+			nCurrentRotation += (rotateHold && checkCollision(nCurrentPiece, nCurrentRotation + 1, nCurrentX, nCurrentY)) ? 1 : 0;
+			rotateHold = false;
+		}
+		else
+			rotateHold = true;
 
 
 		// Draw Field
